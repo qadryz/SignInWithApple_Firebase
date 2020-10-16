@@ -9,9 +9,13 @@ import SwiftUI
 import CryptoKit
 import FirebaseAuth
 import AuthenticationServices
+
 struct Code: View {
+    
+    //Variable to keep track of nonce
     @State var currentNonce:String?
     
+    //Hashing function requires Cryptokit
     func sha256(_ input: String) -> String {
         let inputData = Data(input.utf8)
         let hashedData = SHA256.hash(data: inputData)
@@ -22,6 +26,7 @@ struct Code: View {
         return hashString
     }
     
+    //Creates a random string of characters
     func randomNonceString(length: Int = 32) -> String {
         precondition(length > 0)
         let charset: Array<Character> =
@@ -55,26 +60,35 @@ struct Code: View {
     }
     var body: some View {
         VStack {
+            
+            //Print current userID from Firebase
             Button(action:{print("Current UserID: \(String(describing: Auth.auth().currentUser?.uid))")}){
                 Text("Print Current User")
             }.frame(width: SCREEN_WIDTH/1.5, height: 50, alignment: .center)
+            
+            //Sign out of Firebase Button
             Button(action:{print("Signed Out"); do{try Auth.auth().signOut()}catch{ print("Err")}}){
                 Text("Sign Out")
             }.frame(width: SCREEN_WIDTH/1.5, height: 50, alignment: .center)
+            
+            //Sign in with Apple button
             SignInWithAppleButton(
+                
+                //Request
                 onRequest: { request in
                     let nonce = randomNonceString()
                     currentNonce = nonce
                     request.requestedScopes = [.fullName, .email]
                     request.nonce = sha256(nonce)
                 },
+                
+                //Completion
                 onCompletion: { result in
                     switch result {
                         case .success(let authResults):
                             switch authResults.credential {
                                 case let appleIDCredential as ASAuthorizationAppleIDCredential:
-                                    _ = appleIDCredential.user
-                                    print("Apple ID Creds: \(appleIDCredential.user)")
+                                
                                         guard let nonce = currentNonce else {
                                           fatalError("Invalid state: A login callback was received, but no login request was sent.")
                                         }
@@ -86,7 +100,10 @@ struct Code: View {
                                           return
                                         }
                                         
+                                        //Creating a request for firebase
                                         let credential = OAuthProvider.credential(withProviderID: "apple.com",idToken: idTokenString,rawNonce: nonce)
+                                
+                                        //Sending Request to Firebase
                                         Auth.auth().signIn(with: credential) { (authResult, error) in
                                             if (error != nil) {
                                                 // Error. If error.code == .MissingOrInvalidNonce, make sure
@@ -98,6 +115,8 @@ struct Code: View {
                                             // User is signed in to Firebase with Apple.
                                             print("you're in")
                                         }
+                                
+                                    //Prints the current userID for firebase
                                     print("\(String(describing: Auth.auth().currentUser?.uid))")
                             default:
                                 break
