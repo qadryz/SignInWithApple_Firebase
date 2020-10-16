@@ -122,7 +122,7 @@ struct Code: View {
                                 break
                                         
                                     }
-                            default:
+                           default:
                                 break
                         }
                     
